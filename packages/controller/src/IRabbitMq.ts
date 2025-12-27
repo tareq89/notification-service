@@ -9,7 +9,7 @@ export interface IRabbitMq {
 const QUEUE = "jobs";
 const RABBITMQ_URL = process.env.RABBITMQ_URL || "amqp://localhost";
 export class RabbitMq implements IRabbitMq {
-  constructor() {}
+  constructor() { }
 
   async sendMessage(notificationCmd: INotificationCommand) {
     try {
@@ -46,15 +46,15 @@ export class RabbitMq implements IRabbitMq {
 
       // Wait for RabbitMQ to confirm receipt before closing
       await channel.waitForConfirms();
-      console.log(`\n✅ SUCCESS: Message sent to queue "${queueName}":`, messagePayload);
+      console.log(`✅ SUCCESS: Message sent to queue "${queueName}":`, messagePayload);
 
       await channel.close();
       await conn.close();
-      } 
-      catch (error) {
+    }
+    catch (error) {
       console.error("❌ ERROR sending message to RabbitMQ:", error);
       throw error;
-      }
+    }
   }
 
   async publish(notificationCmd: INotificationCommand): Promise<void> {
