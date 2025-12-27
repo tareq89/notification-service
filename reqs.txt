@@ -1,0 +1,30 @@
+-> Controller
+    - send_notification
+    - rMQ.Send(send_notification_command)
+-> Shared Kernel
+    - iCommand interface
+    - send_notification_command
+-> Service bus
+    - RabbitMQServiceBus
+    - send(command)
+
+QueueName: spiderman_send_notification_cmd_queue
+RabbitMQ -> Queue -> publish(spiderman_send_notification_cmd_queue)
+
+
+
+Console Application:
+name: notification_command_worker_host
+
+Shared kernal
+-> new interface (iCommandHandler)
+-> method handle():
+
+
+class notification_command_worker_host: 
+registernotificationcommandhandler implement iCommandHandler {
+    handle()
+}
+
+
+// its receiver/consumer
