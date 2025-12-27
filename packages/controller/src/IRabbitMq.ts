@@ -12,29 +12,49 @@ export class RabbitMq implements IRabbitMq {
   constructor() {}
 
   async sendMessage(notificationCmd: INotificationCommand) {
-    console.log("Connecting to RabbitMQ at", RABBITMQ_URL);
-    const conn = await amqp.connect(RABBITMQ_URL);
-    const channel = await conn.createChannel();
+    try {
+      const conn = await amqp.connect(RABBITMQ_URL);
+      const channel = await conn.createConfirmChannel();
 
-    // Use recipientId as the queue name
-    const queueName = notificationCmd.recipientId;
-    
-    // Ensure the queue exists
-    await channel.assertQueue(queueName, { durable: true });
+      const queueName = notificationCmd.recipientId;
+      const exchangeName = "notification_exchange";
 
-    // Create message payload
-    const messagePayload = {
-      recipientId: notificationCmd.recipientId,
-      message: notificationCmd.message,
-      timestamp: notificationCmd.timestamp.toISOString(),
-    };
+      await channel.assertExchange(exchangeName, "direct", { durable: true });
 
-    // Send message directly to the queue
-    channel.sendToQueue(queueName, Buffer.from(JSON.stringify(messagePayload)), { persistent: true });
+      // Ensure the queue exists
+      const queueInfo = await channel.assertQueue(queueName, { durable: true });
+      console.log(`✓ Queue "${queueName}" asserted. Messages in queue: ${queueInfo.messageCount}, Consumers: ${queueInfo.consumerCount}`);
 
-    console.log(`Message sent to queue "${queueName}":`, messagePayload);
-    await channel.close();
-    await conn.close();
+      // Bind the queue to the exchange with routing key = queue name
+      await channel.bindQueue(queueName, exchangeName, queueName);
+      console.log(`✓ Queue bound to exchange with routing key "${queueName}"`);
+
+      // Create message payload
+      const messagePayload = {
+        recipientId: notificationCmd.recipientId,
+        message: notificationCmd.message,
+        timestamp: notificationCmd.timestamp.toISOString(),
+      };
+
+      // Publish to the exchange with routing key
+      channel.publish(
+        exchangeName,
+        queueName, // routing key = queue name
+        Buffer.from(JSON.stringify(messagePayload)),
+        { persistent: true }
+      );
+
+      // Wait for RabbitMQ to confirm receipt before closing
+      await channel.waitForConfirms();
+      console.log(`\n✅ SUCCESS: Message sent to queue "${queueName}":`, messagePayload);
+
+      await channel.close();
+      await conn.close();
+      } 
+      catch (error) {
+      console.error("❌ ERROR sending message to RabbitMQ:", error);
+      throw error;
+      }
   }
 
   async publish(notificationCmd: INotificationCommand): Promise<void> {

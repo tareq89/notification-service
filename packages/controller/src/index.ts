@@ -6,7 +6,7 @@ const app = express();
 const PORT = 3000;
 
 app.use(express.json());
-
+console.log('test');
 app.get("/", async (_req: Request, res: Response) => {
   const notificationCmd = new NotificationCommand("spiderman_send_notification_cmd_queue", "Hello, this is a test notification.");
   const rabbitMq = new RabbitMq();
