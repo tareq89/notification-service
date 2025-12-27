@@ -1,4 +1,3 @@
-import { channel } from "diagnostics_channel";
 import { INotificationCommand } from "./notification-cmd";
 import { connectRabbitMQ } from "./service/mq";
 import amqp from "amqplib";
@@ -17,13 +16,23 @@ export class RabbitMq implements IRabbitMq {
     const conn = await amqp.connect(RABBITMQ_URL);
     const channel = await conn.createChannel();
 
-    const exchangeName = "my_exchange";
-    await channel.assertExchange(exchangeName, "direct", { durable: true });
+    // Use recipientId as the queue name
+    const queueName = notificationCmd.recipientId;
+    
+    // Ensure the queue exists
+    await channel.assertQueue(queueName, { durable: true });
 
-    const message = notificationCmd.getMessage();
-    channel.publish(exchangeName, "my_routing_key", Buffer.from(JSON.stringify(message)));
+    // Create message payload
+    const messagePayload = {
+      recipientId: notificationCmd.recipientId,
+      message: notificationCmd.message,
+      timestamp: notificationCmd.timestamp.toISOString(),
+    };
 
-    console.log("Message sent:", message);
+    // Send message directly to the queue
+    channel.sendToQueue(queueName, Buffer.from(JSON.stringify(messagePayload)), { persistent: true });
+
+    console.log(`Message sent to queue "${queueName}":`, messagePayload);
     await channel.close();
     await conn.close();
   }
@@ -36,11 +45,18 @@ export class RabbitMq implements IRabbitMq {
       // Ensure the queue exists
       await channel.assertQueue(QUEUE, { durable: true });
 
+      // Create message payload with structured data
+      const messagePayload = {
+        recipientId: notificationCmd.recipientId,
+        message: notificationCmd.message,
+        timestamp: notificationCmd.timestamp.toISOString(),
+      };
+
       // Send message to the queue
-      const messageBuffer = Buffer.from(JSON.stringify(notificationCmd.getMessage()));
+      const messageBuffer = Buffer.from(JSON.stringify(messagePayload));
       channel.sendToQueue(QUEUE, messageBuffer, { persistent: true });
 
-      console.log(`Message sent to queue "${QUEUE}":`, notificationCmd.getMessage());
+      console.log(`Message sent to queue "${QUEUE}":`, messagePayload);
     } catch (err) {
       console.error("Failed to publish message to RabbitMQ:", err);
       throw err;
