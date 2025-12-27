@@ -1,0 +1,19 @@
+{
+  "name": "architect-express-finale",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "consumer": "RABBITMQ_URL=amqps://iqpehepr:dk0_-GdhN5eQA-R4w583zNmx5LtO-i_3@fuji.lmq.cloudamqp.com/iqpehepr node src/mq/consumer.js",
+    "producer": "RABBITMQ_URL=amqps://iqpehepr:dk0_-GdhN5eQA-R4w583zNmx5LtO-i_3@fuji.lmq.cloudamqp.com/iqpehepr node src/mq/producer.js",
+    "mongo-crud": "MONGO_URI=mongodb+srv://snewaj:182EH68BZUKYwBqj@cognitiveblaze.ug7mvjg.mongodb.net/team_node?appName=CognitiveBlaze node src/db/index.js"
+  },
+  "dependencies": {
+    "amqplib": "^0.10.9",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "mongoose": "^9.0.2",
+    "morgan": "^1.10.1"
+  }
+}
