@@ -11,7 +11,7 @@ export class SendNotificationAggregate {
 
   constructor(dto: SendNotificationDto) {
     this.validateDto(dto);
-    
+
     this.recipientId = dto.recipientId;
     this.message = dto.message;
     this.timestamp = new Date(dto.timestamp);
@@ -111,4 +111,3 @@ export class SendNotificationAggregate {
     return { ...this.metadata };
   }
 }
-

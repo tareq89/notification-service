@@ -4,7 +4,7 @@
   "main": "dist/index.js",
   "license": "MIT",
   "scripts": {
-    "dev": "RABBITMQ_URL=amqps://iqpehepr:dk0_-GdhN5eQA-R4w583zNmx5LtO-i_3@fuji.lmq.cloudamqp.com/iqpehepr ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev": "MONGO_URI=mongodb+srv://snewaj:182EH68BZUKYwBqj@cognitiveblaze.ug7mvjg.mongodb.net/team_node?appName=CognitiveBlaze RABBITMQ_URL=amqps://iqpehepr:dk0_-GdhN5eQA-R4w583zNmx5LtO-i_3@fuji.lmq.cloudamqp.com/iqpehepr ts-node-dev --respawn --transpile-only src/index.ts",
     "dev:test": "RABBITMQ_URL=amqps://iqpehepr:dk0_-GdhN5eQA-R4w583zNmx5LtO-i_3@fuji.lmq.cloudamqp.com/iqpehepr QUEUE_NAME=spiderman_send_notification_cmd_queue_test ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js"
@@ -20,4 +20,3 @@
     "typescript": "^5.9.3"
   }
 }
-

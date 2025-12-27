@@ -1,6 +1,8 @@
 import amqp from "amqplib";
 import { RegisterNotificationCommandHandler } from "../RegisterNotificationCommandHandler";
 import { NotificationCommandPayload } from "../NotificationCommandPayload";
+import { NotificationServiceImpl } from "./repo/services/notification.service";
+import { connectDB } from "./repo";
 
 const RABBITMQ_URL = process.env.RABBITMQ_URL || "amqp://localhost";
 
@@ -11,13 +13,14 @@ export class RabbitMQConsumer {
 
   constructor() {
     this.handler = new RegisterNotificationCommandHandler();
+    connectDB();
   }
 
   async connect(): Promise<void> {
     try {
       console.log("Connecting to RabbitMQ at", RABBITMQ_URL.replace(/:[^:@]+@/, ":****@"));
       this.connection = await amqp.connect(RABBITMQ_URL);
-      
+
       this.connection.on("error", (err: Error) => {
         console.error("RabbitMQ connection error:", err);
       });
@@ -43,7 +46,7 @@ export class RabbitMQConsumer {
     try {
       // Ensure the queue exists
       await this.channel.assertQueue(queueName, { durable: true });
-      
+
       // Set prefetch to process one message at a time
       await this.channel.prefetch(1);
 
@@ -54,34 +57,39 @@ export class RabbitMQConsumer {
       const queueInfo = await this.channel.checkQueue(queueName);
       console.log(`Queue "${queueName}" info:`, {
         messageCount: queueInfo.messageCount,
-        consumerCount: queueInfo.consumerCount
+        consumerCount: queueInfo.consumerCount,
       });
 
-      this.channel.consume(queueName, async (msg) => {
-        if (!msg) {
-          return;
+      this.channel.consume(
+        queueName,
+        async (msg) => {
+          if (!msg) {
+            return;
+          }
+
+          try {
+            const content = msg.content.toString();
+            const payload: NotificationCommandPayload = JSON.parse(content);
+
+            console.log(`\n[${new Date().toISOString()}] Received message from queue "${queueName}"`);
+
+            const notificationServiceImpl = new NotificationServiceImpl();
+            // Handle the command
+            await this.handler.handle(payload, notificationServiceImpl);
+
+            // Acknowledge the message
+            this.channel!.ack(msg);
+          } catch (err) {
+            console.error("Error processing message:", err);
+            // Reject the message and don't requeue if it's a processing error
+            // You might want to send it to a dead letter queue instead
+            this.channel!.nack(msg, false, false);
+          }
+        },
+        {
+          noAck: false, // Manual acknowledgment
         }
-
-        try {
-          const content = msg.content.toString();
-          const payload: NotificationCommandPayload = JSON.parse(content);
-
-          console.log(`\n[${new Date().toISOString()}] Received message from queue "${queueName}"`);
-
-          // Handle the command
-          await this.handler.handle(payload);
-
-          // Acknowledge the message
-          this.channel!.ack(msg);
-        } catch (err) {
-          console.error("Error processing message:", err);
-          // Reject the message and don't requeue if it's a processing error
-          // You might want to send it to a dead letter queue instead
-          this.channel!.nack(msg, false, false);
-        }
-      }, {
-        noAck: false // Manual acknowledgment
-      });
+      );
     } catch (err) {
       console.error(`Failed to consume from queue "${queueName}":`, err);
       throw err;
@@ -98,4 +106,3 @@ export class RabbitMQConsumer {
     console.log("RabbitMQ connection closed");
   }
 }
-
